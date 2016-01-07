@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version			0.5.0.1
+// @version			0.5.0.2
 // @description		Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author			Toby
 // @include			https://kissanime.to/Anime/*/*
@@ -217,6 +217,11 @@
 			$("#vse_config_about").append('<strong>Version:</strong> ' + vse.version + "<br />");
 			$("#vse_config_about").append('<strong>Author:</strong> <a href="http://codingtoby.com" target="_blank" style="color:#6666ff">Toby</a><br />');
 			$("#vse_config_about").append('<strong>Updates:</strong> <a href="https://openuserjs.org/scripts/Tobias.Kelmandia/Video_Streaming_Enhanced" target="_blank" style="color:#6666ff">OpenUserJS</a><br />');
+			$("#vse_config_about").append('<strong>Other Links:</strong>');
+			$("#vse_config_about").append('<ul>');
+			$("#vse_config_about").append('<li><a href="http://codingtoby.com/category/userscripts/video-streaming-enhanced/vse-updates/" target="_blank" style="color:#6666ff">Changelog</a></li>');
+			$("#vse_config_about").append('<li><a href="https://github.com/tobiaskelmandia/videoStreamingEnhanced" target="_blank" style="color:#6666ff">Github</a></li>');
+			$("#vse_config_about").append('</ul>');
 
 			// Make sure the seek lengths are numerical.
 			function validateNumber(id)
