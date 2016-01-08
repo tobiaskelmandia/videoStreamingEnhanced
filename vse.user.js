@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version			0.5.0.4
+// @version			0.5.0.5
 // @description		Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author			Toby
 // @include			https://kissanime.to/Anime/*/*
@@ -441,26 +441,26 @@
 				{
 					$("#PornhubNetworkBar").hide();
 
-					$("#welcome").hide();
+					$("#welcome").remove();
 
-					$("p.footer").hide();
-					$(".footer-title").hide();
+					$("p.footer").remove();
+					$(".footer-title").remove();
 
-					$("section#footer").hide();
-					$(".logoFooterWrapper").hide();
+					$("section#footer").remove();
+					$(".logoFooterWrapper").remove();
 
 					$("#header").css("padding-bottom","5px");
 
 					if (here.indexOf("video/") != -1)
 					{
 						var hardcoreVidsFromFriends = $("h2:contains('Hardcore Videos from Our Friends')").parent().parent()[0];
-						$(hardcoreVidsFromFriends).hide();
+						$(hardcoreVidsFromFriends).remove();
 
 						var popPhotoResults = $("h2:contains('Popular Photos Results')").parent().parent()[0];
-						$(popPhotoResults).hide();
+						$(popPhotoResults).remove();
 
 						var relatedSearch = $("h2:contains('Searches Related to')").parent().parent()[0];
-						$(relatedSearch).hide();
+						$(relatedSearch).remove();
 
 						var ps = $(".section_title:contains('Pornstars')").parent();
 						$(ps).next().hide();
@@ -473,10 +473,12 @@
 							thisLink     = tusl.replaceAll(thisLink, "++", "+%2b");
 							$(this).prop("href", thisLink);
 						});
-						$(pagination).css({position: "relative", width: "100%", float: "right"});
+						$(pagination).css({position: "relative", float: "right"});
 						var pagi = $(".pagination3").prop("outerHTML");
 						$(".nf-videos").find(".sectionWrapper").after().append(pagi);
-						$(pagination).hide();
+						$(pagination).remove();
+
+						$("head").append("<style>.nf-videos { width: calc(100% - 180px) !important; min-width: 800px !important; } </style>");
 					}
 					else if (here.indexOf("view_video.php?viewkey=") != -1)
 					{
@@ -487,6 +489,7 @@
 								$(this).remove();
 							}
 						});
+						$(".abovePlayer").remove();
 					}
 				});
 
@@ -498,6 +501,11 @@
 						$(this).remove();
 					});
 					$(".adblockWhitelisted").parent().remove();
+					$("figure").remove();
+					$("aside").remove();
+					$(".noAdsWhiteListed").remove();
+					$(".ad-link").remove();
+					$(".removeAdLink").remove();
 				});
 
 			},
