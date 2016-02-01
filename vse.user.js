@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version				0.5.1.0
+// @version				0.5.1.1
 // @description			Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author				Toby
 // @include				https://kissanime.to/Anime/*/*
@@ -135,6 +135,8 @@
 		getMimeType          : function (url)
 		{
 			var dfd = jQuery.Deferred();
+			console.log("Retrieving mime-type for: ");
+			console.log(url);
 			GM_xmlhttpRequest(
 				{
 					url    : url,
@@ -142,11 +144,12 @@
 					onload : function (response)
 					{
 						var headers  = response.responseHeaders;
+						console.log(headers);
 						var mimetype = "";
 						headers      = headers.split( "\r\n" );
 						headers.forEach( function (currentValue, index, array)
 						{
-							if ( currentValue.indexOf( "Content-Type:" ) != -1 )
+							if ( (currentValue.indexOf( "Content-Type:" ) != -1) || (currentValue.indexOf( "content-type:" != -1 )) )
 							{
 								vse.video.type = currentValue.split( ": " )[ 1 ];
 								console.log( vse.video.type );
@@ -454,14 +457,17 @@
 					videoTitle      = videoTitle.trim();
 					vse.video.title = videoTitle;
 
+
 					vse.flowplayerProperties = vse.fn.getElementProperties( "#my_video_1_html5_api" );
 					var oldContainer         = $( "#divContentVideo" ).children()[ 0 ];
 					$( oldContainer ).remove();
+
 
 					$.when( vse.fn.getMimeType( vse.video.url ) ).then( function ()
 					{
 						GM_setValue( "vse_videoInfo", JSON.stringify( vse.video ) );
 						console.log( GM_getValue( "vse_videoInfo" ) );
+
 
 						vse.fn.injectPlayer( "#divContentVideo" );
 						$( "#centerDivVideo" ).css( "margin-top", "10px" );
