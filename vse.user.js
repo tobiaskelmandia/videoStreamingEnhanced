@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version				0.5.1.1
+// @version				0.5.1.3
 // @description			Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author				Toby
 // @include				https://kissanime.to/Anime/*/*
@@ -28,12 +28,12 @@
  *
  * @grant explanations
  * unsafeWindow - Required to use Flowplayer commercial.
- * GM_getValue, GM_setValue, GM_deleteValue - Required when working with frames.
+ * GM_getValue, GM_setValue, GM_deleteValue - Required for saving preferences and when working with frames.
  * GM_xmlhttpRequest - Required for determining mime types of files for Flowplayer.
  *****************************************************************************************************/
 
 
-(function (w)
+(function (w,$,jQuery)
 {
 	var vse =
 		{
@@ -66,6 +66,7 @@
 		vse.user.config                    = {};
 		vse.user.config.autoplay           = false;
 		vse.user.config.launch             = false;
+		vse.user.config.launchLite         = true;
 		vse.user.config.jumpForwardLength  = 90;
 		vse.user.config.jumpBackwardLength = 90;
 		vse.user.config.skipForwardLength  = 5;
@@ -100,8 +101,13 @@
 			var html            = $( "#vse_iframe_container" ).html();
 			var h               = vse.flowplayerProperties.height;
 			var w               = vse.flowplayerProperties.width;
-			var vsePlayerWindow = window.open( "", "vse_fp_playerWindow_" + Math.random(),
-				"menubar=false, toolbar=false, height=" + h + ", width=" + w + "" );
+			var llString = "";
+
+			if(vse.user.config.launchLite == true)
+			{
+				var llString = "menubar=false, toolbar=false, height=" + h + ", width=" + w + "";
+			}
+			var vsePlayerWindow = window.open( "", "vse_fp_playerWindow_" + Math.random(),llString );
 			var favicon = 'data:image/png;base64,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';
 			vsePlayerWindow.document.write( html );
 			$( vsePlayerWindow.document ).find( "head" )
@@ -144,18 +150,17 @@
 					onload : function (response)
 					{
 						var headers  = response.responseHeaders;
-						console.log(headers);
-						var mimetype = "";
 						headers      = headers.split( "\r\n" );
-						headers.forEach( function (currentValue, index, array)
+						console.log(headers);
+						for ( var i = 0; i < headers.length ; i++ )
 						{
-							if ( (currentValue.indexOf( "Content-Type:" ) != -1) || (currentValue.indexOf( "content-type:" != -1 )) )
+							if ( (headers[i].search( /((?!x-)(content\-type)(?!-options))/i ) != -1) )
 							{
-								vse.video.type = currentValue.split( ": " )[ 1 ];
+								vse.video.type = headers[i].split( ": " )[ 1 ];
 								console.log( vse.video.type );
 								dfd.resolve();
 							}
-						} );
+						}
 					}
 				} );
 			return dfd.promise();
@@ -186,6 +191,16 @@
 				{
 					$( "#vse_config_launch" ).prop( "checked", false );
 				}
+
+				if ( vse.user.config.launchLite )
+				{
+					$( "#vse_config_launchLite" ).prop( "checked", true );
+				}
+				else
+				{
+					$( "#vse_config_launchLite" ).prop( "checked", false );
+				}
+
 				$( "#vse_config_skipForwardLength" ).val( vse.user.config.skipForwardLength );
 				$( "#vse_config_skipBackwardLength" ).val( vse.user.config.skipBackwardLength );
 				$( "#vse_config_jumpForwardLength" ).val( vse.user.config.jumpForwardLength );
@@ -213,6 +228,7 @@
 			// Player Settings
 			$( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Autoplay: </div><div class="col-xs-7"><input name="vse_config_autoplay" id="vse_config_autoplay" type="checkbox"></div></div>' );
 			$( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Launch player in new window: </div><div class="col-xs-7"><input name="vse_config_launch" id="vse_config_launch" type="checkbox"></div></div>' );
+			$( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Lightweight Launch Window: </div><div class="col-xs-7"><input name="vse_config_launchLite" id="vse_config_launchLite" type="checkbox"></div></div>' );
 			$( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Skip Forward Length: </div><div class="col-xs-7"><input name="vse_config_skipForwardLength" value="" id="vse_config_skipForwardLength" type="text"> seconds</div></div>' );
 			$( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Skip Backward Length: </div><div class="col-xs-7"><input name="vse_config_skipBackwardLength" value="" id="vse_config_skipBackwardLength" type="text"> seconds</div></div>' );
 			$( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Jump Forward Length: </div><div class="col-xs-7"><input name="vse_config_jumpForwardLength" value="" id="vse_config_jumpForwardLength" type="text"> seconds</div></div>' );
@@ -324,6 +340,15 @@
 				else
 				{
 					vse.user.config.launch = false;
+				}
+
+				if ( $( "#vse_config_launchLite" ).prop( "checked" ) )
+				{
+					vse.user.config.launchLite = true;
+				}
+				else
+				{
+					vse.user.config.launchLite = false;
 				}
 
 				vse.user.config.skipForwardLength  = parseInt( $( "#vse_config_skipForwardLength" ).val() );
@@ -499,6 +524,7 @@
 
 					$( "#header" ).css( "padding-bottom", "5px" );
 
+
 					if ( (here.indexOf( "video/" ) != -1) || (here == "http://www.pornhub.com/video") )
 					{
 						var hardcoreVidsFromFriends = $( "h2:contains('Hardcore Videos from Our Friends')" ).parent().parent()[ 0 ];
@@ -524,10 +550,14 @@
 						} );
 						$( pagination ).css( {position : "relative", float : "right"} );
 						var pagi = $( ".pagination3" ).prop( "outerHTML" );
-						$( ".nf-videos" ).find( ".sectionWrapper" ).after().append( pagi );
+
 						$( pagination ).remove();
 
-						$( "head" ).append( "<style>.nf-videos { width: calc(100% - 220px) !important; } </style>" );
+
+						$( ".nf-videos" ).find( ".sectionWrapper" ).after().append( pagi );
+
+
+						$( "head" ).append( "<style>.nf-videos { width: calc(100% - 250px) !important; } </style>" );
 					}
 					else if ( here.indexOf( "view_video.php?viewkey=" ) != -1 )
 					{
@@ -544,6 +574,8 @@
 
 				$( w ).load( function ()
 				{
+					console.log("late cleanup");
+
 					$( "#abAlertClose" ).click();
 					var abwl = $( ".adblockWhitelisted" ).parentsUntil( "div" ).each( function ()
 					{
@@ -555,6 +587,23 @@
 					$( ".noAdsWhiteListed" ).remove();
 					$( ".ad-link" ).remove();
 					$( ".removeAdLink" ).remove();
+
+					$('span[class=""]').each(function()
+					{
+						if($(this).text().trim() == "")
+						{
+							$(this).remove();
+						}
+					});
+
+					$( "div" ).each(function()
+					{
+						if( ($(this).text().trim() == "") && ( ($(this).css("backgroundImage") != "") || ($(this).css("backgroundColor") != "") ) )
+						{
+							$(this).hide();
+						}
+					});
+
 				} );
 
 			},
@@ -853,6 +902,7 @@
 						{
 							vse.video = JSON.parse( GM_getValue( "vse_videoInfo" ) );
 							GM_deleteValue( "vse_videoInfo" );
+							console.log(vse.video);
 						}
 
 						var dlName     = encodeURIComponent( vse.video.title ),
@@ -1158,6 +1208,6 @@
 
 	w.vse = vse;
 
-})( window );
+})( window, this.jQuery, this.jQuery );
 
 vse.init();
