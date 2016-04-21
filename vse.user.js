@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version				0.5.1.5
+// @version				0.5.1.6
 // @description			Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author				Toby
 // @include				https://kissanime.to/Anime/*/*
@@ -13,6 +13,7 @@
 // @require				https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js
 // @require				https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js
 // @require				http://js.codingtoby.com/tusl.js?updated=00006
+// @require             https://cdnjs.cloudflare.com/ajax/libs/bean/1.0.15/bean.min.js
 // @grant				unsafeWindow
 // @grant				GM_getValue
 // @grant				GM_setValue
@@ -108,6 +109,7 @@
         {
             var style = "height: " + vse.flowplayerProperties.height + "px; ";
             style     = style + "width: " + vse.flowplayerProperties.width + "px; ";
+            style     = style + "box-sizing: border-box; margin:0; padding:0; ";
             $( container ).append( "<div id='vse_iframe_container' style='" + style + "'></div>" );
             $( "#vse_iframe_container" ).append( '<iframe id="vse_fp_iframe" name="vse_fp_iframe_' + Math.random()
                                                  + '" src="https://flowplayer.org/standalone/commercial.html" frameborder="0" allowfullscreen="true" scrolling="no" height="100%" width="100%"></iframe>' );
@@ -129,8 +131,6 @@
 			 </style>` );
 
             $( "body" ).append( `<div id="vse_fullCurrentWindowModal"></div>` );
-            vse.flowplayerProperties = vse.fn.getElementProperties( "body" );
-            console.log( vse.flowplayerProperties );
 
             $( "#vse_fullCurrentWindowModal" ).append( `
 			<div id="fcwContainer">
@@ -205,7 +205,15 @@
                 $( "#vse_fullCurrentWindowModal" ).remove();
             } );
 
+            vse.flowplayerProperties = { height: $("body").height() , width: "100vw" };
+            console.log( vse.flowplayerProperties );
+
             vse.fn.injectPlayer( "#vse_fullCurrentWindowModal" );
+
+            $( window ).resize(function()
+            {
+                $( "#vse_iframe_container" ).width( $("body").width() );
+            });
         },
         launchPlayer                  : function ()
         {
@@ -518,7 +526,7 @@
         kissAnime  : {
             cleanupLayout : function ()
             {
-                vse.user.config.debugFCW = true;
+
                 var iframeIDList            = [],
                     vse_hiddenCSS           = "height:1px; width:1px; bottom:0; right:0; background-color:black;",
                     vse_hidden_containerCSS = "bottom:0px; right:0px; height:2px; width:100%;";
@@ -578,7 +586,7 @@
                         console.log( "Setting isBlockAds2 = false" );
                     }, 45000 );
 
-                    if ( !vse.user.config.fullCurrentWindow )
+                    if ( !vse.user.config.fullCurrentWindow && !vse.user.config.debugFCW )
                     {
                         // Scroll to the player area.
                         var scrollTo = $( "#selectEpisode" ).offset().top;
@@ -620,7 +628,9 @@
             init          : function ()
             {
                 console.log( "Running on KissAnime." );
+                vse.video.sourceLocation = "kissAnime";
 
+                vse.user.config.debugFCW = true;
                 console.log( "Debug: Using Full Screen Current Window." );
 
                 $( document ).ready( $.proxy( function ()
@@ -829,6 +839,7 @@
             init          : function ()
             {
                 console.log( "Running on PornHub." );
+                vse.video.sourceLocation = "pornhub";
                 $( document ).ready( $.proxy( function ()
                 {
                     this.cleanupLayout();
@@ -876,7 +887,7 @@
             },
             init        : function ()
             {
-
+                vse.video.sourceLocation = "xvideos";
                 console.log( "Running on XVideos." );
                 $( document ).ready( $.proxy( function ()
                 {
@@ -952,6 +963,7 @@
             },
             init        : function ()
             {
+                vse.video.sourceLocation = "gorillaVid";
                 console.log( "Running on GorillaVid." );
                 $( document ).ready( $.proxy( function ()
                 {
@@ -1007,6 +1019,7 @@
         vseCustom  : {
             init : function ()
             {
+                vse.video.sourceLocation = "vseCustom";
                 console.log( "Running on: VSE Custom" );
                 vse.video.title          = "";
                 vse.flowplayerProperties = vse.fn.getElementProperties( "#playerContainer" );
@@ -1106,13 +1119,13 @@
                         }
 
                         // Replace existing body html with injected player.
-                        $( "body" ).html( '<div id="vsePlayer" class="flowplayer" data-embed="false" data-key="$130763224349944" tabindex="-1"></div>' );
+                        var bodyElement = $( "body" );
+                        $( bodyElement ).html( '<div id="vsePlayer" class="flowplayer" data-embed="false" data-key="$130763224349944" tabindex="-1"></div>' );
                         var playerElement = $( "#vsePlayer" );
                         var styleElement  = $( "style" );
 
                         $( playerElement ).append( '<video data-title="' + vse.video.title + '"' + ap + '><source type="' + vse.video.type + '" src="'
                                                    + vse.video.url + '"></video>' );
-
 
                         /**************************************************
                          ** Reskin the stock commercial player.
@@ -1133,6 +1146,7 @@
                             .flowplayer .fp-progress { background-color: rgba(219, 0, 0, 1) }
                             .flowplayer .fp-buffer { background-color: rgba(249, 249, 249, 1) }
                             .flowplayer.is-mouseout .fp-ui { cursor: none !important; }
+                            .flowplayer .fp-help .fp-help-basics { margin-top:3%; }
 
                             /* Always use a black background for unused screen space. */
                             .flowplayer, .flowplayer.is-fullscreen, .flowplayer.is-fullscreen .fp-player, .flowplayer.is-playing { background-color: #000000; }
@@ -1213,7 +1227,7 @@
                          ** Adjust flowplayer basic config.
                          **************************************************/
 
-                            // Remove unnecessary rtmp object.
+                        // Remove unnecessary rtmp object.
                         delete unsafeWindow.flowplayer.conf.rtmp;
 
                         // Enable fullscreen.
@@ -1221,6 +1235,9 @@
 
                         // Enable adaptive ratio.
                         unsafeWindow.flowplayer.conf.adaptiveRatio = true;
+
+                        // Test keyboard disable
+                        unsafeWindow.flowplayer.conf.keyboard = false;
 
                         // Initialize injected Flowplayer instance
                         var player = unsafeWindow.$( playerElement ).flowplayer();
@@ -1252,14 +1269,110 @@
                                     vse.fn.launchConfig();
                                 }
                             } );
+                            // Create Help Section
+                            $(playerElement).append(`
+                            <div class="fp-help">
+                                <div class="fp-help-section fp-help-basics">
+                                    <p>
+                                        <em>space</em>Play / Pause
+                                    </p>
+                                    <p>
+                                        <em>q</em>Unload | Stop
+                                    </p>
+                                    <p>
+                                        <em>f</em>Fullscreen
+                                    </p>
+                                    <p>
+                                        <em>shift</em> + <em><i class="material-icons">arrow_back</i></em>
+                                        <em><i class="material-icons">arrow_forward</i></em>
+                                        Slower / Faster
+                                    </p>
+                                </div>
+
+                                <div class="fp-help-section">
+                                    <p>
+                                        <em><i class="material-icons">arrow_upward</i></em><em><i class="material-icons">arrow_downward</i></em>Volume
+                                    </p>
+                                    <p>
+                                        <em>m</em>Mute
+                                    </p>
+                                </div>
+
+                                <div class="fp-help-section">
+                                    <p>
+                                        <em><i class="material-icons">arrow_back</i></em>Skip Backwards `+ vse.user.config.skipBackwardLength +`s
+                                    </p>
+                                    <p>
+                                        <em><i class="material-icons">arrow_forward</i></em>Skip Forwards `+ vse.user.config.skipForwardLength +`s
+                                    </p>
+                                </div>
+
+                                <div class="fp-help-section">
+                                    <p>
+                                        <em>ctrl</em> + <em><i class="material-icons">arrow_back</i></em>Jump Backwards `+ vse.user.config.jumpBackwardLength +`s
+                                    </p>
+                                    <p>
+                                        <em>ctrl</em> + <em><i class="material-icons">arrow_forward</i></em>Jump Forwards `+ vse.user.config.jumpForwardLength +`s
+                                    </p>
+                                </div>
+
+                                <div class="fp-help-section">
+                                    <p>
+                                        <em>&nbsp;. </em>Seek to Previous
+                                    </p>
+                                    <p>
+                                        <em>1</em><em>2</em> ... <em>6</em> seek to 10%, 20% ... 60%
+                                    </p>
+                                </div>
+
+                                <div class="fp-help-section vseKissAnimeOnly">
+                                    <p>
+                                        <em>alt</em> + <em><i class="material-icons">arrow_back</i></em>Previous Episode
+                                    </p>
+                                    <p>
+                                        <em>alt</em> + <em><i class="material-icons">arrow_forward</i></em>Next Episode
+                                    </p>
+                                </div>
+
+                                <div class="fp-help-section">
+                                    <p>
+                                        <em>/</em> Toggle Help
+                                    </p>
+                                </div>
+
+                                <div class="fp-help-section">
+                                    <p>
+                                        <em>&#96;</em> Open Video Streaming Enhanced Config
+                                    </p>
+                                </div>
+                            </div>
+                            `);
+
+                            if(vse.video.sourceLocation != "kissAnime")
+                            {
+                                $(".vseKissAnimeOnly").remove();
+                            }
+
 
                             // Reconfigure Hotkeys
-                            $( playerElement ).keydown( function (e)
+                            unsafeWindow.$( playerElement ).keydown( function (e)
                             {
                                 var metaKeyPressed = e.ctrlKey || e.metaKey || e.altKey,
                                     key            = e.which;
                                 if ( !e.shiftKey && !metaKeyPressed )
                                 {
+                                    // Number Key Seeking
+                                    if (key < 58 && key > 47)
+                                    {
+                                        return FP.seekTo(key - 48);
+                                    }
+
+                                    // Escape closes help menu
+                                    if (key == 27 && $(playerElement).hasClass("is-help")) {
+                                        $(playerElement).toggleClass("is-help");
+                                        return false;
+                                    }
+
                                     switch (key)
                                     {
                                         case 39: // Right arrow key will now skip forward by configured length.
@@ -1295,6 +1408,8 @@
                                         case 81: // 'q' key will unload / stop.
                                             FP.unload();
                                             break;
+                                        case 191:
+                                            $(playerElement).toggleClass("is-help");
                                         default:
                                             return;
                                     }
@@ -1346,6 +1461,14 @@
                                         e.preventDefault();
                                     }
                                 }
+
+                                // Slow Motion / Fast Forward
+                                if (e.shiftKey)
+                                {
+                                    if (key == 39) FP.speed(true);
+                                    else if (key == 37) FP.speed(false);
+                                    return;
+                                }
                                 e.preventDefault();
                             } );
 
@@ -1389,59 +1512,7 @@
                             var fpscript = $( "head" ).find( "script" );
                             var fpsl     = fpscript.length;
                             $( fpscript[ fpsl - 1 ] ).remove();
-                            console.log( fpscript );
-
-
-                            /**************************************************
-                             * Help Menu
-                             * Fix broken icons in the help menu.
-                             * Add new help section.
-                             **************************************************/
-                            $( ".fp-help" ).append( '<div class="fp-help-section"><p></p></div>' );
-
-                            var hsObj       = $( ".fp-help-section" ),
-                                helpSection = {};
-
-
-                            /*  Convenient Help Section Object */
-                            helpSection.basics = $( hsObj[ 0 ] ).children();
-                            // $(helpSection.basics[0]) = Play / Pause
-                            // $(helpSection.basics[1]) = Unload | Stop
-                            // $(helpSection.basics[2]) = Fullscreen
-                            // $(helpSection.basics[3]) = Slower / Faster
-                            helpSection.volume = $( hsObj[ 1 ] ).children();
-                            // $(helpSection.volume[0]) = Volume
-                            // $(helpSection.volume[1]) = Mute
-                            helpSection.seeking = $( hsObj[ 2 ] ).children();
-                            $( helpSection.seeking[ 0 ] ).remove();
-                            $( hsObj[ 2 ] ).prepend( "<p></p> <p></p> <br /> <p></p> <p></p> <br />" );
-                            helpSection.seeking = $( hsObj[ 2 ] ).find( "p" );
-                            // $(helpSection.seeking[0]) = Skip Backwards
-                            // $(helpSection.seeking[1]) = Skip Forwards
-                            // $(helpSection.seeking[2]) = Seek to Previous
-                            // $(helpSection.seeking[3]) = Seek to %
-                            helpSection.custom1 = $( hsObj[ 3 ] ).children();
-                            // $(helpSection.custom1[0]) = Config Menu
-
-
-                            // Fix Icons: Slower / Faster
-                            $( helpSection.basics[ 3 ] ).html( '<em>shift</em> + <em><i class="material-icons">arrow_back</i></em><em><i class="material-icons">arrow_forward</i></em>slower / faster' );
-
-                            // Fix Icons: Volume
-                            $( helpSection.volume[ 0 ] ).html( '<em><i class="material-icons">arrow_upward</i></em><em><i class="material-icons">arrow_downward</i></em>volume' );
-
-                            // Replace: Seek
-                            $( helpSection.seeking[ 0 ] ).html( '<em><i class="material-icons">arrow_back</i></em>Skip Backwards '
-                                                                + vse.user.config.skipBackwardLength + 's' );
-                            $( helpSection.seeking[ 1 ] ).html( '<em><i class="material-icons">arrow_forward</i></em>Skip Forwards '
-                                                                + vse.user.config.skipForwardLength + 's' );
-                            $( helpSection.seeking[ 2 ] ).html( '<em>ctrl</em> + <em><i class="material-icons">arrow_back</i></em>Jump Backwards '
-                                                                + vse.user.config.jumpBackwardLength + 's' );
-                            $( helpSection.seeking[ 3 ] ).html( '<em>ctrl</em> + <em><i class="material-icons">arrow_forward</i></em>Jump Forwards '
-                                                                + vse.user.config.jumpForwardLength + 's' );
-
-                            // VSE Config
-                            $( helpSection.custom1[ 0 ] ).html( '<em>`</em> Open Video Streaming Enhanced Config' );
+                            //console.log( fpscript );
 
                             // Focus the player automatically.
                             $( playerElement ).focus();
