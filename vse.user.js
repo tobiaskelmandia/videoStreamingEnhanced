@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version				0.5.1.6
+// @version				0.5.1.7
 // @description			Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author				Toby
 // @include				https://kissanime.to/Anime/*/*
@@ -1430,36 +1430,33 @@
                                 }
                                 if ( e.altKey )
                                 {
-                                    if ( (vse.user.config.fullCurrentWindow || vse.user.config.debugFCW ) || (!vse.user.config.launch) )
+                                    if ( vse.video.prevLink && e.which == 37 )
                                     {
-                                        if ( vse.video.prevLink && e.which == 37 )
+                                        FP.pause();
+                                        $( "body" ).append( `
+                                            <div class="vse_video_loading_new">
+                                                <span>Loading Previous Video...</span>
+                                            </div>
+                                            ` );
+                                        setTimeout( function ()
                                         {
-                                            FP.pause();
-                                            $( "body" ).append( `
-												<div class="vse_video_loading_new">
-													<span>Loading Previous Video...</span>
-												</div>
-												` );
-                                            setTimeout( function ()
-                                            {
-                                                window.top.location = vse.video.prevLink;
-                                            }, 1000 );
-                                        }
-                                        if ( vse.video.nextLink && e.which == 39 )
-                                        {
-                                            FP.pause();
-                                            $( "body" ).append( `
-												<div class="vse_video_loading_new">
-													<span>Loading Next Video...</span>
-												</div>
-											` );
-                                            setTimeout( function ()
-                                            {
-                                                window.top.location = vse.video.nextLink;
-                                            }, 1000 );
-                                        }
-                                        e.preventDefault();
+                                            window.top.location = vse.video.prevLink;
+                                        }, 1000 );
                                     }
+                                    if ( vse.video.nextLink && e.which == 39 )
+                                    {
+                                        FP.pause();
+                                        $( "body" ).append( `
+                                            <div class="vse_video_loading_new">
+                                                <span>Loading Next Video...</span>
+                                            </div>
+                                        ` );
+                                        setTimeout( function ()
+                                        {
+                                            window.top.location = vse.video.nextLink;
+                                        }, 1000 );
+                                    }
+                                    e.preventDefault();
                                 }
 
                                 // Slow Motion / Fast Forward
