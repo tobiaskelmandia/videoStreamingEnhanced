@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version				0.5.1.4
+// @version				0.5.1.5
 // @description			Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author				Toby
 // @include				https://kissanime.to/Anime/*/*
@@ -62,9 +62,17 @@
     var jqui      = '<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">';
     var fbgrid    = '<link rel="stylesheet" href="//cdn.jsdelivr.net/flexboxgrid/6.3.0/flexboxgrid.min.css" type="text/css" >';
     var vseStyles = `
-	<style>
+    /* VSE FCW Messages */
+    .vse_video_loading_new
+    {
+        z-index: 99999; position:fixed; left: 0; top:25%; display: block; opacity: 0.8; width: 100%; text-align: center; box-sizing: border-box;
+    }
 
-	</style>
+    .vse_video_loading_new span
+    {
+        box-sizing: border-box; position: relative;
+        background-color: #000000; padding: 1.25vw 5vw; border-radius: 30px; border: 1px solid #000000; font-size: 1.25vw; color: #FFFFFF;
+    }
 	`;
 
     if ( !GM_getValue( "vse_settings" ) )
@@ -80,8 +88,10 @@
         vse.user.config.skipBackwardLength = 5;
         GM_setValue( "vse_settings", JSON.stringify( vse.user.config ) );
     }
+
     $.merge( vse.user, JSON.parse( GM_getValue( "vse_settings" ) ) );
     console.log( vse.user );
+
 
     vse.fn =
     {
@@ -115,15 +125,7 @@
 			 #fcwContainer { z-index:3; position: absolute; right:5px; top:5px; height: auto; opacity: .25; display: inline-block; }
 			 #fcwContainer a  { color: #FFFFFF; text-decoration: none; font-weight: bold; font-size:18px; cursor:pointer;  }
 			 #fcwContainer a:hover  { color: #ACFFBD;  }
-			.vse_video_loading_new_container
-			{
-				z-index: 5; position:relative; width:100%; text-align: center; left: 0; top:25%; display: block;
-			}
-			.vse_video_loading_new
-			{
-				position:absolute; display: inline-block; background-color: #000000; padding: 5px; border-radius: 5px; border: 1px solid #000000;
-				font-size: 20pt; color: #FFFFFF;
-			}
+			` + vseStyles + `
 			 </style>` );
 
             $( "body" ).append( `<div id="vse_fullCurrentWindowModal"></div>` );
@@ -145,10 +147,40 @@
             {
                 $( "#vse_fcwPrev" ).css( "opacity", "0" );
             }
+            else
+            {
+                $( "#vse_fcwPrev" ).click( function ()
+                {
+                    $( "body" ).append( `
+                    <div class="vse_video_loading_new">
+                        <span>Loading Previous Video...</span>
+                    </div>
+					` );
+                    setTimeout( function ()
+                    {
+                        window.top.location = vse.video.prevLink;
+                    }, 1 );
+                } );
+            }
 
             if ( !vse.video.nextLink )
             {
                 $( "#vse_fcwNext" ).css( "opacity", "0" );
+            }
+            else
+            {
+                $( "#vse_fcwNext" ).click( function ()
+                {
+                    $( "body" ).append( `
+                    <div class="vse_video_loading_new">
+                        <span>Loading Next Video...</span>
+                    </div>
+					` );
+                    setTimeout( function ()
+                    {
+                        window.top.location = vse.video.nextLink;
+                    }, 1 );
+                } );
             }
 
             GM_setValue( "vse_videoInfo", JSON.stringify( vse.video ) );
@@ -174,11 +206,6 @@
             } );
 
             vse.fn.injectPlayer( "#vse_fullCurrentWindowModal" );
-
-            setTimeout( function ()
-            {
-                $( 'html, body' ).animate( {scrollTop : 0}, 1000 );
-            }, 1 );
         },
         launchPlayer                  : function ()
         {
@@ -229,9 +256,10 @@
             console.log( url );
             GM_xmlhttpRequest(
                 {
-                    url    : url,
-                    method : "HEAD",
-                    onload : function (response)
+                    url       : url,
+                    method    : "HEAD",
+                    timeout   : 5000,
+                    onload    : function (response)
                     {
                         var headers = response.responseHeaders;
                         headers     = headers.split( "\r\n" );
@@ -251,6 +279,12 @@
                                 dfd.resolve();
                             }
                         }
+                    },
+                    ontimeout : function ()
+                    {
+                        console.log( "Unable to determine MimeType. Attempting to proceed..." );
+                        vse.video.type = "";
+                        dfd.resolve();
                     }
                 } );
             return dfd.promise();
@@ -299,7 +333,6 @@
                 {
                     $( "#vse_config_fullCurrentWindow" ).prop( "checked", false );
                 }
-
 
                 $( "#vse_config_skipForwardLength" ).val( vse.user.config.skipForwardLength );
                 $( "#vse_config_skipBackwardLength" ).val( vse.user.config.skipBackwardLength );
@@ -485,6 +518,7 @@
         kissAnime  : {
             cleanupLayout : function ()
             {
+                vse.user.config.debugFCW = true;
                 var iframeIDList            = [],
                     vse_hiddenCSS           = "height:1px; width:1px; bottom:0; right:0; background-color:black;",
                     vse_hidden_containerCSS = "bottom:0px; right:0px; height:2px; width:100%;";
@@ -586,6 +620,9 @@
             init          : function ()
             {
                 console.log( "Running on KissAnime." );
+
+                console.log( "Debug: Using Full Screen Current Window." );
+
                 $( document ).ready( $.proxy( function ()
                 {
                     this.cleanupLayout();
@@ -609,7 +646,11 @@
                         GM_setValue( "vse_videoInfo", JSON.stringify( vse.video ) );
                         console.log( GM_getValue( "vse_videoInfo" ) );
 
-                        if ( vse.user.config.fullCurrentWindow )
+
+                        // Always use FCW on KissAnime for now...
+                        console.log( "Debug: Using Full Current Window." );
+                        // if ( vse.user.config.fullCurrentWindow )
+                        if ( vse.user.config.fullCurrentWindow || vse.user.config.debugFCW )
                         {
                             vse.fn.injectFullCurrentWindowPlayer();
                         }
@@ -1016,7 +1057,7 @@
                     {
                         switch (key)
                         {
-                            case 192: // Grave accent key will now open the AniLinkz Enhanced config modal.
+                            case 192: // Grave accent key will now open the Video Streaming Enhanced config modal.
                                 vse.fn.launchConfig();
                                 break;
                         }
@@ -1065,9 +1106,12 @@
                         }
 
                         // Replace existing body html with injected player.
-                        $( "body" ).html( '<div id="vsePlayer" class="flowplayer" data-embed="false" data-key="$130763224349944"></div>' );
-                        $( "#vsePlayer" ).append( '<video data-title="' + vse.video.title + '"' + ap + '><source type="' + vse.video.type + '" src="'
-                                                  + vse.video.url + '"></video>' );
+                        $( "body" ).html( '<div id="vsePlayer" class="flowplayer" data-embed="false" data-key="$130763224349944" tabindex="-1"></div>' );
+                        var playerElement = $( "#vsePlayer" );
+                        var styleElement  = $( "style" );
+
+                        $( playerElement ).append( '<video data-title="' + vse.video.title + '"' + ap + '><source type="' + vse.video.type + '" src="'
+                                                   + vse.video.url + '"></video>' );
 
 
                         /**************************************************
@@ -1076,36 +1120,43 @@
                             // Add google Material Icons webfont. (To fix broken myriad pro icons)
                         $( "head" ).append( '<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">' );
 
-                        // Adjust material icons class to match the help screen.
-                        $( "style" ).append( ' .material-icons { font-size: 100% !important; line-height: 1.5  !important; } ' );
 
-                        // Basic Styles
-                        $( "style" ).append( " body { background-color:#000000; margin:0px; padding:0px; height:100%; width:100%; max-height:100%; max-width:100%; } " );
-                        $( "style" ).append( ' .flowplayer { width:100%; height:100%; max-height:100%; max-width:100%; margin: auto; position: absolute; top: 0; left: 0; bottom: 0; right: 0; } ' );
-                        $( "style" ).append( ' .flowplayer .fp-controls { background-color: rgba(0, 0, 0, 0.4) } ' );
-                        $( "style" ).append( ' .flowplayer .fp-timeline { background-color: rgba(46, 46, 46, 1) } ' );
-                        $( "style" ).append( ' .flowplayer .fp-progress { background-color: rgba(219, 0, 0, 1) } ' );
-                        $( "style" ).append( ' .flowplayer .fp-buffer { background-color: rgba(249, 249, 249, 1) } ' );
-                        $( "style" ).append( ' .flowplayer.is-mouseout .fp-ui { cursor: none !important; } ' );
+                        $( styleElement ).append( `
+                            /* Adjust material icons class to match the help screen. */
+                            .material-icons { font-size: 100% !important; line-height: 1.5  !important; }
 
-                        // Always use a black background for unused screen space.
-                        $( "style" ).append( ' .flowplayer, .flowplayer.is-fullscreen, .flowplayer.is-fullscreen .fp-player, .flowplayer.is-playing { background-color: #000000; } ' );
+                            /* Basic Styles */
+                            body { background-color:#000000; margin:0px; padding:0px; height:100%; width:100%; max-height:100%; max-width:100%; }
+                            .flowplayer { width:100%; height:100%; max-height:100%; max-width:100%; margin: auto; position: absolute; top: 0; left: 0; bottom: 0; right: 0; }
+                            .flowplayer .fp-controls { background-color: rgba(0, 0, 0, 0.4) }
+                            .flowplayer .fp-timeline { background-color: rgba(46, 46, 46, 1) }
+                            .flowplayer .fp-progress { background-color: rgba(219, 0, 0, 1) }
+                            .flowplayer .fp-buffer { background-color: rgba(249, 249, 249, 1) }
+                            .flowplayer.is-mouseout .fp-ui { cursor: none !important; }
 
-                        // Enable timeline tooltip
-                        $( "style" ).append( ' .flowplayer .fp-timeline:hover+.fp-timeline-tooltip { display:block; } ' );
-                        $( "style" ).append( ' .is-touch.flowplayer .fp-timeline:hover+.fp-timeline-tooltip { display:block; } ' );
+                            /* Always use a black background for unused screen space. */
+                            .flowplayer, .flowplayer.is-fullscreen, .flowplayer.is-fullscreen .fp-player, .flowplayer.is-playing { background-color: #000000; }
 
-                        // AniLinkz Enhanced player config.
-                        $( "style" ).append( ' .vse_config { height:100%; width:100%; background-color: rgba(51,51,51,0.9); left:0px; top:0px; margin:0px; color:#ffffff; position:absolute; } ' );
-                        $( "style" ).append( ' .vse_config_main { margin-top:6%; padding-left:5%; position:relative; text-align:center; } ' );
+                            /* Enable timeline tooltip */
+                            .flowplayer .fp-timeline:hover+.fp-timeline-tooltip { display:block; }
+                            .is-touch.flowplayer .fp-timeline:hover+.fp-timeline-tooltip { display:block; }
 
+                            /* Video Streaming Enhanced player config. */
+                            .vse_config { height:100%; width:100%; background-color: rgba(51,51,51,0.9); left:0px; top:0px; margin:0px; color:#FFFFFF; position:absolute; }
+                            .vse_config_main { margin-top:6%; padding-left:5%; position:relative; text-align:center; }
+                            #vsePlayer:focus { outline:none; }
+
+                            ` + vseStyles + `
+                        ` );
 
                         // Move fullscreen button to the bottom right.
                         (function ()
                         {
                             // Make room for the fullscreen button.
-                            $( "style" ).append( " .flowplayer .fp-duration, .flowplayer .fp-remaining { right:225px; margin-right:45px } " );
-                            $( "style" ).append( " .flowplayer.is-mouseover .fp-controls { right:50px; } .flowplayer .fp-fullscreen{ top:0; right:-40px; } " );
+                            $( styleElement ).append( `
+                                .flowplayer .fp-duration, .flowplayer .fp-remaining { right:225px; margin-right:45px }
+                                .flowplayer.is-mouseover .fp-controls { right:50px; } .flowplayer .fp-fullscreen{ top:0; right:-40px; }
+                            ` );
 
                             flowplayer( function (api, root)
                             {
@@ -1172,29 +1223,38 @@
                         unsafeWindow.flowplayer.conf.adaptiveRatio = true;
 
                         // Initialize injected Flowplayer instance
-                        var player = unsafeWindow.$( "#vsePlayer" ).flowplayer();
+                        var player = unsafeWindow.$( playerElement ).flowplayer();
 
                         // Flowplayer API shortcut variable
-                        var FP = unsafeWindow.$( "#vsePlayer" ).data( "flowplayer" );
+                        var FP = unsafeWindow.$( playerElement ).data( "flowplayer" );
 
                         // Wait until the player is ready.
                         FP.on( "ready", function ()
                         {
-                            // Focus the player automatically.
-                            $( "#vsePlayer" ).focus();
                             console.log( FP );
                             // Enable adaptive ratio.
                             unsafeWindow.flowplayer.conf.adaptiveRatio = true;
 
                             // Add double click to fullscreen support.
-                            $( "#vsePlayer" ).dblclick( function ()
+                            $( playerElement ).dblclick( function ()
                             {
                                 FP.fullscreen();
                             } );
                             vse.fn.prepConfig();
 
+
+                            $( document ).keydown( function (e)
+                            {
+                                var metaKeyPressed = e.ctrlKey || e.metaKey || e.altKey,
+                                    key            = e.which;
+                                if ( (!e.shiftKey && !metaKeyPressed) && key == 192 )
+                                {
+                                    vse.fn.launchConfig();
+                                }
+                            } );
+
                             // Reconfigure Hotkeys
-                            unsafeWindow.$( document ).keydown( function (e)
+                            $( playerElement ).keydown( function (e)
                             {
                                 var metaKeyPressed = e.ctrlKey || e.metaKey || e.altKey,
                                     key            = e.which;
@@ -1202,9 +1262,6 @@
                                 {
                                     switch (key)
                                     {
-                                        case 192: // Grave accent key will now open the AniLinkz Enhanced config modal.
-                                            vse.fn.launchConfig();
-                                            break;
                                         case 39: // Right arrow key will now skip forward by configured length.
                                             FP.seek( FP.video.time + vse.user.config.skipForwardLength );
                                             break;
@@ -1258,29 +1315,33 @@
                                 }
                                 if ( e.altKey )
                                 {
-                                    if ( (vse.user.config.fullCurrentWindow) || (!vse.user.config.launch) )
+                                    if ( (vse.user.config.fullCurrentWindow || vse.user.config.debugFCW ) || (!vse.user.config.launch) )
                                     {
                                         if ( vse.video.prevLink && e.which == 37 )
                                         {
                                             FP.pause();
                                             $( "body" ).append( `
-											<div class="vse_video_loading_new_container">
 												<div class="vse_video_loading_new">
-													Loading Previous Video...
+													<span>Loading Previous Video...</span>
 												</div>
-											</div>` );
-                                            window.top.location = vse.video.prevLink;
+												` );
+                                            setTimeout( function ()
+                                            {
+                                                window.top.location = vse.video.prevLink;
+                                            }, 1000 );
                                         }
                                         if ( vse.video.nextLink && e.which == 39 )
                                         {
                                             FP.pause();
                                             $( "body" ).append( `
-											<div class="vse_video_loading_new_container">
 												<div class="vse_video_loading_new">
-													Loading Next Video...
+													<span>Loading Next Video...</span>
 												</div>
-											</div>` );
-                                            window.top.location = vse.video.nextLink;
+											` );
+                                            setTimeout( function ()
+                                            {
+                                                window.top.location = vse.video.nextLink;
+                                            }, 1000 );
                                         }
                                         e.preventDefault();
                                     }
@@ -1289,14 +1350,14 @@
                             } );
 
 
-                            var playerElement = unsafeWindow.document.querySelector( "#vsePlayer" );
+                            var rawPlayerElement = unsafeWindow.document.querySelector( "#vsePlayer" );
 
-                            console.log( playerElement );
+                            console.log( rawPlayerElement );
 
                             // IE9, Chrome, Safari, Opera
-                            playerElement.addEventListener( "mousewheel", MouseWheelHandler, false );
+                            rawPlayerElement.addEventListener( "mousewheel", MouseWheelHandler, false );
                             // Firefox
-                            playerElement.addEventListener( "DOMMouseScroll", MouseWheelHandler, false );
+                            rawPlayerElement.addEventListener( "DOMMouseScroll", MouseWheelHandler, false );
 
                             var wheelDirection = function (evt)
                             {
@@ -1305,7 +1366,12 @@
 
                             function MouseWheelHandler(e)
                             {
-                                var direction = wheelDirection(e);
+                                var direction = wheelDirection( e );
+
+                                if ( FP.muted )
+                                {
+                                    FP.mute( false );
+                                }
 
                                 if ( direction == 1 )
                                 {
@@ -1376,6 +1442,22 @@
 
                             // VSE Config
                             $( helpSection.custom1[ 0 ] ).html( '<em>`</em> Open Video Streaming Enhanced Config' );
+
+                            // Focus the player automatically.
+                            $( playerElement ).focus();
+
+                            console.log( "Current Focus: " );
+                            console.log( document.activeElement );
+
+                            // Make sure the player is properly positioned.
+                            if ( vse.user.config.fullCurrentWindow || vse.user.config.debugFCW )
+                            {
+                                setTimeout( function ()
+                                {
+                                    $( 'html, body' ).animate( {scrollTop : 0}, 1000 );
+                                }, 1 );
+                            }
+
                         } );
                     } );
                 }
