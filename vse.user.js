@@ -1,15 +1,16 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version				0.5.1.7
+// @version				0.5.1.8
 // @description			Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author				Toby
-// @include				https://kissanime.to/Anime/*/*
+// @include				http://kissanime.to/Anime/*/*
 // @include				http://www.pornhub.com/*
 // @include 			http://www.xvideos.com/video*
 // @include				http://gorillavid.in/*
 // @include				https://flowplayer.org/standalone/commercial.html
 // @include				http://vse.codingtoby.com/
+// @include             https://xmovies8.org/watch*
 // @require				https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js
 // @require				https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js
 // @require				http://js.codingtoby.com/tusl.js?updated=00006
@@ -54,7 +55,8 @@
         pornhub    : "pornhub.com",
         xvideos    : "xvideos.com",
         gorillavid : "gorillavid.in",
-        vseCustom  : "codingtoby.com"
+        vseCustom  : "codingtoby.com",
+        xMovies    : "xmovies8.org"
     };
 
     // Location of the new player.
@@ -85,8 +87,10 @@
         vse.user.config.fullCurrentWindow  = false;
         vse.user.config.jumpForwardLength  = 90;
         vse.user.config.jumpBackwardLength = 90;
-        vse.user.config.skipForwardLength  = 5;
-        vse.user.config.skipBackwardLength = 5;
+        vse.user.config.skipForwardLength  = 15;
+        vse.user.config.skipBackwardLength = 15;
+        vse.user.config.hopForwardLength  = 5;
+        vse.user.config.hopBackwardLength  = 5;
         GM_setValue( "vse_settings", JSON.stringify( vse.user.config ) );
     }
 
@@ -205,15 +209,15 @@
                 $( "#vse_fullCurrentWindowModal" ).remove();
             } );
 
-            vse.flowplayerProperties = { height: $("body").height() , width: "100vw" };
+            vse.flowplayerProperties = {height : $( "body" ).height(), width : "100vw"};
             console.log( vse.flowplayerProperties );
 
             vse.fn.injectPlayer( "#vse_fullCurrentWindowModal" );
 
-            $( window ).resize(function()
+            $( window ).resize( function ()
             {
-                $( "#vse_iframe_container" ).width( $("body").width() );
-            });
+                $( "#vse_iframe_container" ).width( $( "body" ).width() );
+            } );
         },
         launchPlayer                  : function ()
         {
@@ -342,6 +346,8 @@
                     $( "#vse_config_fullCurrentWindow" ).prop( "checked", false );
                 }
 
+                $( "#vse_config_hopForwardLength" ).val( vse.user.config.hopForwardLength );
+                $( "#vse_config_hopBackwardLength" ).val( vse.user.config.hopBackwardLength );
                 $( "#vse_config_skipForwardLength" ).val( vse.user.config.skipForwardLength );
                 $( "#vse_config_skipBackwardLength" ).val( vse.user.config.skipBackwardLength );
                 $( "#vse_config_jumpForwardLength" ).val( vse.user.config.jumpForwardLength );
@@ -372,6 +378,8 @@
             $( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Lightweight Launch Window: </div><div class="col-xs-7"><input name="vse_config_launchLite" id="vse_config_launchLite" type="checkbox"></div></div>' );
             $( "#vse_config_playerSettings" ).append( `<div class="row"><div class="col-xs-5">Fullscreen Current Window: </div><div class="col-xs-7">
 			<input name="vse_config_fullCurrentWindow" id="vse_config_fullCurrentWindow" type="checkbox"></div></div>` );
+            $( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Hop Forward Length: </div><div class="col-xs-7"><input name="vse_config_hopForwardLength" value="" id="vse_config_hopForwardLength" type="text"> seconds</div></div>' );
+            $( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Hop Backward Length: </div><div class="col-xs-7"><input name="vse_config_hopBackwardLength" value="" id="vse_config_hopBackwardLength" type="text"> seconds</div></div>' );
             $( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Skip Forward Length: </div><div class="col-xs-7"><input name="vse_config_skipForwardLength" value="" id="vse_config_skipForwardLength" type="text"> seconds</div></div>' );
             $( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Skip Backward Length: </div><div class="col-xs-7"><input name="vse_config_skipBackwardLength" value="" id="vse_config_skipBackwardLength" type="text"> seconds</div></div>' );
             $( "#vse_config_playerSettings" ).append( '<div class="row"><div class="col-xs-5">Jump Forward Length: </div><div class="col-xs-7"><input name="vse_config_jumpForwardLength" value="" id="vse_config_jumpForwardLength" type="text"> seconds</div></div>' );
@@ -385,6 +393,7 @@
             $( "#vse_config_supportedSites" ).append( "PornHub.com<br />" );
             $( "#vse_config_supportedSites" ).append( "GorillaVid.in<br />" );
             $( "#vse_config_supportedSites" ).append( "XVideos.com (Launched Player Only)<br />" );
+            $( "#vse_config_supportedSites" ).append( "XMovies8.org<br />" );
             $( "#vse_config_supportedSites" ).append( "vse.codingtoby.com (Choose the URL of a video file to stream.)<br />" );
             $( "#vse_config_supportedSites" ).append( "<br /><br />" );
             $( "#vse_config_supportedSites" ).append( "Support for new sites can be added on demand." );
@@ -418,7 +427,14 @@
                     $( "#" + id ).val( vse.user.config[ trueName ] );
                 }
             }
-
+            $( '#vse_config_hopForwardLength' ).keyup( function ()
+            {
+                validateNumber( "vse_config_hopForwardLength" )
+            } );
+            $( '#vse_config_hopBackwardLength' ).keyup( function ()
+            {
+                validateNumber( "vse_config_hopBackwardLength" )
+            } );
             $( '#vse_config_skipForwardLength' ).keyup( function ()
             {
                 validateNumber( "vse_config_skipForwardLength" )
@@ -503,6 +519,8 @@
                     vse.user.config.fullCurrentWindow = false;
                 }
 
+                vse.user.config.hopForwardLength  = parseInt( $( "#vse_config_hopForwardLength" ).val() );
+                vse.user.config.hopBackwardLength = parseInt( $( "#vse_config_hopBackwardLength" ).val() );
                 vse.user.config.skipForwardLength  = parseInt( $( "#vse_config_skipForwardLength" ).val() );
                 vse.user.config.skipBackwardLength = parseInt( $( "#vse_config_skipBackwardLength" ).val() );
                 vse.user.config.jumpForwardLength  = parseInt( $( "#vse_config_jumpForwardLength" ).val() );
@@ -786,8 +804,8 @@
                 var dfd = jQuery.Deferred();
                 $( document ).ready( function ()
                 {
-                    var fv = $( document ).find( "script:contains('flashvars')" )[ 0 ];
-                    fv     = $( fv ).prop( "innerHTML" );
+                    var fv           = $( document ).find( "script:contains('flashvars')" )[ 0 ];
+                    fv               = $( fv ).prop( "innerHTML" );
                     //console.log(fv);
                     var pqarr        = fv.split( "var player_quality_" );
                     var pql          = pqarr.length;
@@ -921,7 +939,7 @@
         gorillavid : {
             getVideoURL : function ()
             {
-                // do shit
+                // handled by prepwork
             },
             prepwork    : function ()
             {
@@ -945,18 +963,19 @@
                     }
                     else
                     {
-                        jwplayer().onReady( function ()
+                        let jwpWait = setInterval(function()
                         {
-                            // URL of the video file.
-                            var videoUrl = jwplayer().config.file;
-                            console.log( jwplayer().config );
-                            vse.video.url            = videoUrl;
-                            vse.flowplayerProperties = vse.fn.getElementProperties( ".pic-big" );
-                            vse.video.title          = "";
-                            console.log( "Loading video:" );
-                            console.log( videoUrl );
-                            dfd.resolve();
-                        } );
+                            if($("video".length == 1))
+                            {
+                                vse.video.url            = $("video" ).attr("src");
+                                vse.flowplayerProperties = vse.fn.getElementProperties( ".pic-big" );
+                                vse.video.title          = "";
+                                console.log( "Loading video:" );
+                                console.log( vse.video.url );
+                                clearInterval(jwpWait);
+                                dfd.resolve();
+                            }
+                        },500);
                     }
                 } );
                 return dfd.promise();
@@ -1009,6 +1028,10 @@
                             if ( vse.user.config.launch )
                             {
                                 vse.fn.launchPlayer();
+                                setTimeout(function()
+                                {
+                                    window.close();
+                                },2000);
                             }
                         } );
                     }, this ) );
@@ -1044,6 +1067,59 @@
                         }
                     } );
 
+                } );
+            }
+        },
+        xMovies    : {
+            init : function ()
+            {
+                vse.video.sourceLocation = "xMovies";
+                console.log( "Running on xMovies." );
+
+                $( document ).ready( function ()
+                {
+                    var video_id = w.location.href.split( "v=" )[ 1 ];
+                    video_id     = video_id.split( "#" )[ 0 ];
+                    //console.log(video_id);
+                    $.post( '/video_info/iframe', {
+                        v : video_id
+                    }, function (data)
+                    {
+                        //console.log(data);
+                        var videoStreams = [];
+                        var vj           = JSON.parse( data );
+                        $.each( vj, function (k, v)
+                        {
+                            videoStreams.push( v );
+                        } );
+
+                        var numOpts        = videoStreams.length - 1;
+                        var defaultQuality = "https:" + videoStreams[ numOpts ];
+                        var dq             = defaultQuality.split( "https://html5player.org/embed?url=" )[ 1 ];
+                        dq                 = decodeURIComponent( dq );
+                        //console.log(dq);
+
+                        vse.video.url            = dq;
+                        vse.video.title          = $( "div.title" ).find( "h1" ).text().trim();
+                        vse.flowplayerProperties = vse.fn.getElementProperties( "div.player_container" );
+                        //console.log(vse.flowplayerProperties);
+
+                        $( "div.player_container" ).before( "<div id='vse_newPlayerContainer'></div>" );
+                        $( "div.player_container" ).remove();
+
+                        $.when( vse.fn.getMimeType( vse.video.url ) ).then( function ()
+                        {
+                            GM_setValue( "vse_videoInfo", JSON.stringify( vse.video ) );
+                            console.log( GM_getValue( "vse_videoInfo" ) );
+                            vse.fn.injectPlayer( "#vse_newPlayerContainer" );
+
+                            if ( vse.user.config.launch )
+                            {
+                                vse.fn.launchPlayer();
+                            }
+                        } );
+
+                    } );
                 } );
             }
         }
@@ -1147,6 +1223,7 @@
                             .flowplayer .fp-buffer { background-color: rgba(249, 249, 249, 1) }
                             .flowplayer.is-mouseout .fp-ui { cursor: none !important; }
                             .flowplayer .fp-help .fp-help-basics { margin-top:3%; }
+                            .fp-speed { display: none !important; }
 
                             /* Always use a black background for unused screen space. */
                             .flowplayer, .flowplayer.is-fullscreen, .flowplayer.is-fullscreen .fp-player, .flowplayer.is-playing { background-color: #000000; }
@@ -1227,7 +1304,7 @@
                          ** Adjust flowplayer basic config.
                          **************************************************/
 
-                        // Remove unnecessary rtmp object.
+                            // Remove unnecessary rtmp object.
                         delete unsafeWindow.flowplayer.conf.rtmp;
 
                         // Enable fullscreen.
@@ -1257,6 +1334,7 @@
                             {
                                 FP.fullscreen();
                             } );
+
                             vse.fn.prepConfig();
 
 
@@ -1270,7 +1348,7 @@
                                 }
                             } );
                             // Create Help Section
-                            $(playerElement).append(`
+                            $( playerElement ).append( `
                             <div class="fp-help">
                                 <div class="fp-help-section fp-help-basics">
                                     <p>
@@ -1282,11 +1360,6 @@
                                     <p>
                                         <em>f</em>Fullscreen
                                     </p>
-                                    <p>
-                                        <em>shift</em> + <em><i class="material-icons">arrow_back</i></em>
-                                        <em><i class="material-icons">arrow_forward</i></em>
-                                        Slower / Faster
-                                    </p>
                                 </div>
 
                                 <div class="fp-help-section">
@@ -1297,22 +1370,31 @@
                                         <em>m</em>Mute
                                     </p>
                                 </div>
-
+                                
                                 <div class="fp-help-section">
                                     <p>
-                                        <em><i class="material-icons">arrow_back</i></em>Skip Backwards `+ vse.user.config.skipBackwardLength +`s
+                                        <em>shift</em> + <em><i class="material-icons">arrow_back</i></em>Hop Backwards ` + vse.user.config.hopBackwardLength + `s
                                     </p>
                                     <p>
-                                        <em><i class="material-icons">arrow_forward</i></em>Skip Forwards `+ vse.user.config.skipForwardLength +`s
+                                        <em>shift</em> + <em><i class="material-icons">arrow_forward</i></em>Hop Backwards ` + vse.user.config.hopForwardLength + `s
                                     </p>
                                 </div>
 
                                 <div class="fp-help-section">
                                     <p>
-                                        <em>ctrl</em> + <em><i class="material-icons">arrow_back</i></em>Jump Backwards `+ vse.user.config.jumpBackwardLength +`s
+                                        <em><i class="material-icons">arrow_back</i></em>Skip Backwards ` + vse.user.config.skipBackwardLength + `s
                                     </p>
                                     <p>
-                                        <em>ctrl</em> + <em><i class="material-icons">arrow_forward</i></em>Jump Forwards `+ vse.user.config.jumpForwardLength +`s
+                                        <em><i class="material-icons">arrow_forward</i></em>Skip Forwards ` + vse.user.config.skipForwardLength + `s
+                                    </p>
+                                </div>
+
+                                <div class="fp-help-section">
+                                    <p>
+                                        <em>ctrl</em> + <em><i class="material-icons">arrow_back</i></em>Jump Backwards ` + vse.user.config.jumpBackwardLength + `s
+                                    </p>
+                                    <p>
+                                        <em>ctrl</em> + <em><i class="material-icons">arrow_forward</i></em>Jump Forwards ` + vse.user.config.jumpForwardLength + `s
                                     </p>
                                 </div>
 
@@ -1346,11 +1428,11 @@
                                     </p>
                                 </div>
                             </div>
-                            `);
+                            ` );
 
-                            if(vse.video.sourceLocation != "kissAnime")
+                            if ( vse.video.sourceLocation != "kissAnime" )
                             {
-                                $(".vseKissAnimeOnly").remove();
+                                $( ".vseKissAnimeOnly" ).remove();
                             }
 
 
@@ -1362,24 +1444,25 @@
                                 if ( !e.shiftKey && !metaKeyPressed )
                                 {
                                     // Number Key Seeking
-                                    if (key < 58 && key > 47)
+                                    if ( key < 58 && key > 47 )
                                     {
-                                        return FP.seekTo(key - 48);
+                                        return FP.seekTo( key - 48 );
                                     }
 
                                     // Escape closes help menu
-                                    if (key == 27 && $(playerElement).hasClass("is-help")) {
-                                        $(playerElement).toggleClass("is-help");
+                                    if ( key == 27 && $( playerElement ).hasClass( "is-help" ) )
+                                    {
+                                        $( playerElement ).toggleClass( "is-help" );
                                         return false;
                                     }
 
                                     switch (key)
                                     {
                                         case 39: // Right arrow key will now skip forward by configured length.
-                                            FP.seek( FP.video.time + vse.user.config.skipForwardLength );
+                                            FP.seek( FP.video.time + vse.user.config.hopForwardLength );
                                             break;
                                         case 37: // Left arrow key will now skip backwards by configured length.
-                                            FP.seek( FP.video.time - vse.user.config.skipBackwardLength );
+                                            FP.seek( FP.video.time - vse.user.config.hopBackwardLength );
                                             break;
 
                                         // Enable original controls to function without hover.
@@ -1409,7 +1492,23 @@
                                             FP.unload();
                                             break;
                                         case 191:
-                                            $(playerElement).toggleClass("is-help");
+                                            $( playerElement ).toggleClass( "is-help" );
+                                        default:
+                                            return;
+                                    }
+                                }
+                                if (e.shiftKey)
+                                {
+                                    switch (key)
+                                    {
+                                        case 39: // Right arrow key will now skip forward by configured length.
+                                            FP.seek( FP.video.time + vse.user.config.skipForwardLength );
+                                            break;
+                                        case 37: // Left arrow key will now skip backwards by configured length.
+                                            FP.seek( FP.video.time - vse.user.config.skipBackwardLength );
+                                            break;
+                                        case 191:
+                                            $( playerElement ).toggleClass( "is-help" );
                                         default:
                                             return;
                                     }
@@ -1460,12 +1559,17 @@
                                 }
 
                                 // Slow Motion / Fast Forward
-                                if (e.shiftKey)
+                                /*
+                                if ( e.shiftKey )
                                 {
-                                    if (key == 39) FP.speed(true);
-                                    else if (key == 37) FP.speed(false);
+                                    if ( key == 39 ) FP.speed( true );
+                                    else if ( key == 37 )
+                                    {
+                                        FP.speed( false );
+                                    }
                                     return;
                                 }
+                                */
                                 e.preventDefault();
                             } );
 
