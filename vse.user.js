@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version				0.5.1.8
+// @version				0.5.2.0
 // @description			Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author				Toby
-// @include				http://kissanime.to/Anime/*/*
+// @include				http://kissanime.ru/Anime/*/*
+// @include             https://kimcartoon.me/Cartoon/*/*
 // @include				http://www.pornhub.com/*
 // @include 			http://www.xvideos.com/video*
 // @include				http://gorillavid.in/*
@@ -48,10 +49,22 @@
             player  : {}
         };
 
+
+    function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
+
     // Supported domains that VSE will run on.
     vse.domains =
     {
-        kissAnime  : "kissanime.to",
+        kissAnime  : "kissanime.ru",
+        kimCartoon : "kimcartoon.me",
         pornhub    : "pornhub.com",
         xvideos    : "xvideos.com",
         gorillavid : "gorillavid.in",
@@ -121,14 +134,22 @@
         },
         injectFullCurrentWindowPlayer : function ()
         {
-            var prevLink = $( "#btnPrevious" ).parent().attr( "href" );
-            var nextLink = $( "#btnNext" ).parent().attr( "href" );
+            if(vse.video.srcLoc == "kissAnime")
+            {
+                var prevLink = $( "#btnPrevious" ).parent().attr( "href" );
+                var nextLink = $( "#btnNext" ).parent().attr( "href" );
+            }
+            else if(vse.video.srcLoc == "kimCartoon")
+            {
+                var prevLink = $( "#Img1" ).parent().attr( "href" );
+                var nextLink = $( "#Img2" ).parent().attr( "href" );
+            }
 
             $( "head" ).append( `<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 			<style>
 			 .noscroll { overflow: hidden; }
 			 #vse_fullCurrentWindowModal { z-index:2; position: absolute; left:0; top:0; background-color: #000000; height: 100% !important; width:100%; min-height:100% !important; }
-			 #fcwContainer { z-index:3; position: absolute; right:5px; top:5px; height: auto; opacity: .25; display: inline-block; }
+			 #fcwContainer { z-index:3; position: absolute; right:5px; top:45px; height: auto; opacity: .25; display: inline-block; }
 			 #fcwContainer a  { color: #FFFFFF; text-decoration: none; font-weight: bold; font-size:18px; cursor:pointer;  }
 			 #fcwContainer a:hover  { color: #ACFFBD;  }
 			` + vseStyles + `
@@ -389,7 +410,8 @@
             $( "#vse_config_playerSettings" ).append( '<input id="vse_config_cancel" type="button" value="Cancel"> ' );
 
             // Supported Sites
-            $( "#vse_config_supportedSites" ).append( "KissAnime.to<br />" );
+            $( "#vse_config_supportedSites" ).append( "kissanime.ru<br />" );
+            $( "#vse_config_supportedSites" ).append( "kimcartoon.me<br />" );
             $( "#vse_config_supportedSites" ).append( "PornHub.com<br />" );
             $( "#vse_config_supportedSites" ).append( "GorillaVid.in<br />" );
             $( "#vse_config_supportedSites" ).append( "XVideos.com (Launched Player Only)<br />" );
@@ -626,9 +648,12 @@
             },
             getVideoURL   : function ()
             {
-                var video_URL = $( "#my_video_1_html5_api" ).prop( "src" );
+                //var video_URL = $( "#my_video_1_html5_api" ).prop( "src" );
+
+                /*
+
                 var qualArr   = [];
-                $( '#selectQuality' ).children().each( function ()
+                $( '#slcQualix' ).children().each( function ()
                 {
                     qualArr.push( $( this ).val() );
                 } );
@@ -636,12 +661,56 @@
 
                 qualArr.forEach( function (currentValue, index, array)
                 {
-                    srcArr.push( unsafeWindow.asp.wrap( currentValue ) );
+                    srcArr.push( unsafeWindow.ovelWrap( currentValue ) );
                 } );
+                console.log("SrcArr = ");
                 console.log( srcArr );
-                //var testvar = unsafeWindow.asp.wrap();
 
-                return video_URL;
+
+                var video_URL = srcArr[0];
+                */
+
+                var dfd = jQuery.Deferred();
+                var video_URL = "";
+
+                if(getParameterByName('s') == "kissanime")
+                {
+                    var video_URL = $( "#my_video_1_html5_api" ).prop( "src" );
+                    vse.video.url = video_URL;
+                    dfd.resolve();
+                }
+                else if(getParameterByName('s') == "rapidvideo")
+                {
+                    var rv = $( "iframe[src*='rapidvideo']" );
+                    var rvurl = $(rv).attr("src");
+                    var rvsrc = "";
+                    var rvtemp = "";
+                    var rvobj = "";
+                    console.log(rvurl);
+
+                    GM_xmlhttpRequest({
+                        method: "GET",
+                        url: rvurl,
+                        onload: function(response) {
+                            rvsrc = response.responseText;
+                            rvtemp = rvsrc.split("sources")[1];
+                            rvtemp = rvtemp.split("]")[0];
+                            rvtemp += "]";
+                            rvtemp = rvtemp.split("[")[1];
+                            rvtemp = "[" + rvtemp;
+
+                            rvobj = JSON.parse(rvtemp);
+                            var rvl = rvobj.length - 1;
+
+                            console.log(rvobj[rvl].file);
+                            video_URL = rvobj[rvl].file;
+                            vse.video.url = video_URL;
+                            dfd.resolve();
+                        }
+                    });
+                }
+
+                return dfd.promise();
             },
             init          : function ()
             {
@@ -654,13 +723,136 @@
                 $( document ).ready( $.proxy( function ()
                 {
                     this.cleanupLayout();
-                    vse.video.url   = this.getVideoURL();
+
                     var videoTitle  = $( "title" ).text();
                     videoTitle      = tusl.replaceAll( videoTitle, "\n", "" );
                     videoTitle      = videoTitle.split( " - Watch " )[ 0 ];
                     videoTitle      = videoTitle.replace( /\s\s+/g, ' ' );
                     videoTitle      = videoTitle.trim();
                     vse.video.title = videoTitle;
+                    $("title").text(vse.video.title);
+                    vse.video.srcLoc = "kissAnime";
+
+
+                    $.when( this.getVideoURL() ).then( function ()
+                    {
+                        vse.flowplayerProperties = vse.fn.getElementProperties( "#my_video_1_html5_api" );
+                        var oldContainer         = $( "#divContentVideo" ).children()[ 0 ];
+                        $( oldContainer ).remove();
+
+
+                        $.when( vse.fn.getMimeType( vse.video.url ) ).then( function ()
+                        {
+
+                            GM_setValue( "vse_videoInfo", JSON.stringify( vse.video ) );
+                            console.log( GM_getValue( "vse_videoInfo" ) );
+
+
+                            // Always use FCW on KissAnime for now...
+                            console.log( "Debug: Using Full Current Window." );
+                            // if ( vse.user.config.fullCurrentWindow )
+                            if ( vse.user.config.fullCurrentWindow || vse.user.config.debugFCW )
+                            {
+                                vse.fn.injectFullCurrentWindowPlayer();
+                            }
+                            else
+                            {
+                                vse.fn.injectPlayer( "#divContentVideo" );
+                                $( "#centerDivVideo" ).css( "margin-top", "10px" );
+                                $( "#centerDivVideo" ).css( "margin-bottom", "10px" );
+
+                                if ( vse.user.config.launch )
+                                {
+                                    vse.fn.launchPlayer();
+                                }
+                            }
+
+                        } );
+                    } );
+
+
+                }, this ) );
+            }
+        },
+        kimCartoon  : {
+            cleanupLayout : function ()
+            {
+                var iframeIDList            = [],
+                    vse_hiddenCSS           = "height:1px; width:1px; bottom:0; right:0; background-color:black;",
+                    vse_hidden_containerCSS = "bottom:0px; right:0px; height:2px; width:100%;";
+                $( document ).ready( function ()
+                {
+                    $( "body" ).css( "overflow-x", "hidden" );
+                    $( "head" ).append( "<style id='vse_style'></style>" );
+                    $( "#vse_style" ).append( ".vse_hidden { " + vse_hiddenCSS + " }" );
+                    $( "#vse_style" ).append( ".vse_hidden_container { " + vse_hidden_containerCSS + " }" );
+                    $( "label.lbl" ).each( function ()
+                    {
+                        var lbltxt = $( this ).text();
+                        lbltxt     = lbltxt.trim();
+                        $( this ).text( lbltxt );
+                    } );
+
+                    if ( !vse.user.config.fullCurrentWindow && !vse.user.config.debugFCW )
+                    {
+                        // Scroll to the player area.
+                        var scrollTo = $( "#selectEpisode" ).offset().top;
+                        $( 'html, body' ).animate( {scrollTop : scrollTo}, 300 );
+                    }
+
+                } );
+
+                $( w ).load( function ()
+                {
+                    $( "iframe" ).each( function ()
+                    {
+                        if ( $( this ).attr( "id" ) != "vse_fp_iframe" )
+                        {
+                            $( this ).remove();
+                        }
+                    } );
+                } );
+            },
+            getVideoURL   : function ()
+            {
+                var video_URL = $( "#my_video_1_html5_api" ).prop( "src" );
+                var qualArr   = [];
+                $( '#selectQuality' ).children().each( function ()
+                {
+                    qualArr.push( $( this ).val() );
+                } );
+                var srcArr = [];
+
+                qualArr.forEach( function (currentValue, index, array)
+                {
+                    srcArr.push( unsafeWindow.$kissenc.decrypt( currentValue ) );
+                } );
+                console.log( srcArr );
+                //var testvar = unsafeWindow.asp.wrap();
+
+                return video_URL;
+            },
+            init          : function ()
+            {
+                console.log( "Running on kimCartoon." );
+                vse.video.sourceLocation = "kimCartoon";
+
+                vse.user.config.debugFCW = true;
+                console.log( "Debug: Using Full Screen Current Window." );
+
+                $( document ).ready( $.proxy( function ()
+                {
+                    this.cleanupLayout();
+                    vse.video.url   = this.getVideoURL();
+                    var videoTitle  = $( "title" ).text();
+                    videoTitle      = videoTitle.split( "- Watch" )[ 0 ];
+                    videoTitle      = videoTitle.trim();
+                    videoTitle      = tusl.replaceAll( videoTitle, "\n", " - " );
+                    videoTitle      = videoTitle.replace( /\s\s+/g, ' ' );
+                    videoTitle      = videoTitle.trim();
+                    vse.video.title = videoTitle;
+                    $("title").text(vse.video.title);
+                    vse.video.srcLoc = "kimCartoon";
 
 
                     vse.flowplayerProperties = vse.fn.getElementProperties( "#my_video_1_html5_api" );
@@ -1217,7 +1409,6 @@
                             /* Basic Styles */
                             body { background-color:#000000; margin:0px; padding:0px; height:100%; width:100%; max-height:100%; max-width:100%; }
                             .flowplayer { width:100%; height:100%; max-height:100%; max-width:100%; margin: auto; position: absolute; top: 0; left: 0; bottom: 0; right: 0; }
-                            .flowplayer .fp-controls { background-color: rgba(0, 0, 0, 0.4) }
                             .flowplayer .fp-timeline { background-color: rgba(46, 46, 46, 1) }
                             .flowplayer .fp-progress { background-color: rgba(219, 0, 0, 1) }
                             .flowplayer .fp-buffer { background-color: rgba(249, 249, 249, 1) }
@@ -1226,7 +1417,7 @@
                             .fp-speed { display: none !important; }
 
                             /* Always use a black background for unused screen space. */
-                            .flowplayer, .flowplayer.is-fullscreen, .flowplayer.is-fullscreen .fp-player, .flowplayer.is-playing { background-color: #000000; }
+                            .flowplayer.is-ready .fp-player { background-color: #000; }
 
                             /* Enable timeline tooltip */
                             .flowplayer .fp-timeline:hover+.fp-timeline-tooltip { display:block; }
@@ -1239,50 +1430,6 @@
 
                             ` + vseStyles + `
                         ` );
-
-                        // Move fullscreen button to the bottom right.
-                        (function ()
-                        {
-                            // Make room for the fullscreen button.
-                            $( styleElement ).append( `
-                                .flowplayer .fp-duration, .flowplayer .fp-remaining { right:225px; margin-right:45px }
-                                .flowplayer.is-mouseover .fp-controls { right:50px; } .flowplayer .fp-fullscreen{ top:0; right:-40px; }
-                            ` );
-
-                            flowplayer( function (api, root)
-                            {
-                                // at initializiation
-                                // - remove fullscreen button
-                                // - add fullscreen button to controlbar
-
-                                var fsbutton = document.createElement( "a" ),
-                                    anchors  = root.getElementsByTagName( "a" ),
-                                    divs     = root.getElementsByTagName( "div" ),
-                                    i, elem;
-
-                                fsbutton.className = "fp-fullscreen";
-
-                                for (i = 0 ; i < anchors.length ; i += 1)
-                                {
-                                    elem = anchors[ i ];
-                                    if ( elem.className == "fp-fullscreen" )
-                                    {
-                                        elem.parentNode.removeChild( elem );
-                                        break;
-                                    }
-                                }
-
-                                for (i = 0 ; i < divs.length ; i += 1)
-                                {
-                                    elem = divs[ i ];
-                                    if ( elem.className == "fp-controls" )
-                                    {
-                                        elem.appendChild( fsbutton );
-                                        break;
-                                    }
-                                }
-                            } );
-                        })();
 
 
                         /**************************************************
@@ -1482,12 +1629,13 @@
                                             if ( FP.playing )
                                             {
                                                 FP.pause();
+                                                break;
                                             }
                                             else
                                             {
                                                 FP.play();
+                                                break;
                                             }
-                                            break;
                                         case 81: // 'q' key will unload / stop.
                                             FP.unload();
                                             break;
@@ -1614,6 +1762,10 @@
                             var fpsl     = fpscript.length;
                             $( fpscript[ fpsl - 1 ] ).remove();
                             //console.log( fpscript );
+
+                            // remove flowerplayer logo
+                            var fplogolink = $("a[href*='//flowplayer.org/hello/']");
+                            $(fplogolink).remove();
 
                             // Focus the player automatically.
                             $( playerElement ).focus();
