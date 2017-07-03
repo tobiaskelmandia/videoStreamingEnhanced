@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version				0.5.2.0
+// @version				0.5.2.1
 // @description			Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author				Toby
 // @include				http://kissanime.ru/Anime/*/*
@@ -9,7 +9,7 @@
 // @include				http://www.pornhub.com/*
 // @include 			http://www.xvideos.com/video*
 // @include				http://gorillavid.in/*
-// @include				https://flowplayer.org/standalone/commercial.html
+// @include				https://flowplayer.com/standalone/commercial.html
 // @include				http://vse.codingtoby.com/
 // @include             https://xmovies8.org/watch*
 // @require				https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js
@@ -73,7 +73,7 @@
     };
 
     // Location of the new player.
-    vse.flowplayer = "https://flowplayer.org/standalone/commercial.html";
+    vse.flowplayer = "https://flowplayer.com/standalone/commercial.html";
 
     var jqui      = '<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">';
     var fbgrid    = '<link rel="stylesheet" href="//cdn.jsdelivr.net/flexboxgrid/6.3.0/flexboxgrid.min.css" type="text/css" >';
@@ -129,7 +129,7 @@
             style     = style + "box-sizing: border-box; margin:0; padding:0; ";
             $( container ).append( "<div id='vse_iframe_container' style='" + style + "'></div>" );
             $( "#vse_iframe_container" ).append( '<iframe id="vse_fp_iframe" name="vse_fp_iframe_' + Math.random()
-                                                 + '" src="https://flowplayer.org/standalone/commercial.html" frameborder="0" allowfullscreen="true" scrolling="no" height="100%" width="100%"></iframe>' );
+                                                 + '" src="https://flowplayer.com/standalone/commercial.html" frameborder="0" allowfullscreen="true" scrolling="no" height="100%" width="100%"></iframe>' );
             $( "#vse_fp_iframe" ).prop( "style", "max-width:100%; max-height:100%; width:100%; height:100%; padding:0px; margin:0px; background-color:#000000;" );
         },
         injectFullCurrentWindowPlayer : function ()
