@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name				Video Streaming Enhanced
 // @namespace			http://codingtoby.com
-// @version				0.5.2.1
+// @version				0.5.2.2
 // @description			Improves streaming video by replacing other players with Flowplayer, and adding a variety of configuration options.
 // @author				Toby
 // @include				http://kissanime.ru/Anime/*/*
@@ -673,13 +673,15 @@
                 var dfd = jQuery.Deferred();
                 var video_URL = "";
 
-                if(getParameterByName('s') == "kissanime")
+                var vidSvr = $("#selectServer").find(":selected").text();
+
+                if(vidSvr == "KissAnime")
                 {
                     var video_URL = $( "#my_video_1_html5_api" ).prop( "src" );
                     vse.video.url = video_URL;
                     dfd.resolve();
                 }
-                else if(getParameterByName('s') == "rapidvideo")
+                else if(vidSvr == "RapidVideo")
                 {
                     var rv = $( "iframe[src*='rapidvideo']" );
                     var rvurl = $(rv).attr("src");
